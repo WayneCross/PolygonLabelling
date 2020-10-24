@@ -20,7 +20,7 @@ window.geometry('1400x700')
 window.resizable(False, False)
 
 
-img_path = "ADE_train_00000001.jpg"
+img_path = "C:\Study\Internship\App\dataset\ADE20K_2016_07_26\Images\img\ADE_train_00000001.jpg"
 
 
 img = Image.open(img_path) 
@@ -63,29 +63,16 @@ lb.select_set(0)
 
 
 bn = Buttons(canvas, iid, img_height, img_width, window, lb)
-new_polygon_bn = Button(window, text = 'Create new Polygon', command = bn.new)
+new_polygon_bn = Button(window, text = 'Create mode', command = bn.create_mode)
 new_polygon_bn.place(x = 1240, y = 10)
 
-select_polygon_bn = Button(window, text = 'Select Polygon', command = bn.select)
+select_polygon_bn = Button(window, text = 'Edit mode', command = bn.edit_mode)
 select_polygon_bn.place(x = 1240, y = 40)
 
-del_polygon_bn = Button(window, text = 'Delete Polygon', command = bn.delete)
-del_polygon_bn.place(x = 1240, y = 70)
 
-add_point_bn = Button(window, text = 'Add point', command = bn.add_p)
-add_point_bn.place(x = 1240, y = 100)
 
-mv_point_bn = Button(window, text = 'Move point', command = bn.move_p)
-mv_point_bn.place(x = 1240, y = 130)
 
-rm_point_bn = Button(window, text = 'Remove point', command = bn.rm_p)
-rm_point_bn.place(x = 1240, y = 160)
 
-inc_lvl_bn = Button(window, text = 'Increase Level', command = bn.inc)
-inc_lvl_bn.place(x = 1240, y = 190)
-
-dec_lvl_bn = Button(window, text = 'Decrease Level', command = bn.dec)
-dec_lvl_bn.place(x = 1240, y = 220)
 
 save_bn = Button(window, text = 'Save', command = bn.save)
 save_bn.place(x = 1240, y = 250)
@@ -102,11 +89,6 @@ del_all_bn.place(x = 90, y = 20)
 
 
 draw(canvas, labels, img)
-lb.bind("<Button-1>", bn.get_color)
-canvas.tag_bind("point", "<Button-1>", bn.move_point_click)
-canvas.tag_bind("polygon", '<Button-1>', bn.double_click)
-canvas.bind("<Button-1>", bn.backend)  
-window.bind('<Control-z>', bn.undo_shortcut)
-window.bind('<Control-y>', bn.redo_shortcut)
-window.bind('<Escape>', bn.esc_shortcut)
+lb.bind("<Button-1>", bn.get_color) 
+
 window.mainloop()
