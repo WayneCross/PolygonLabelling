@@ -64,10 +64,10 @@ lb.select_set(0)
 
 bn = Buttons(canvas, iid, img_height, img_width, window, lb)
 new_polygon_bn = Button(window, text = 'Create mode', command = bn.create_mode)
-new_polygon_bn.place(x = 1240, y = 10)
+new_polygon_bn.place(x = 188, y = 20)
 
 select_polygon_bn = Button(window, text = 'Edit mode', command = bn.edit_mode)
-select_polygon_bn.place(x = 1240, y = 40)
+select_polygon_bn.place(x = 268, y = 20)
 
 
 
@@ -75,7 +75,7 @@ select_polygon_bn.place(x = 1240, y = 40)
 
 
 save_bn = Button(window, text = 'Save', command = bn.save)
-save_bn.place(x = 1240, y = 250)
+save_bn.place(x = 153, y = 20)
 
 undo_bn = Button(window, text = 'Undo', command = bn.undo)
 undo_bn.place(x = 10, y = 20)

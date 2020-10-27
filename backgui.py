@@ -143,7 +143,8 @@ class Buttons:
 
         self.edit_mode()
 
-
+       
+        self.map = dict([])
 ########Shortcuts#################
 
     def undo_shortcut(self, event):
@@ -173,29 +174,115 @@ class Buttons:
 ###########Top left buttons operations###############
 
     def undo(self):
-        self.reset()
-        self.delete_selected_polygon_points()
-        if(self.state == 1):
-            self.edit_mode()
-        else:
-            self.create_mode()
+        self.button_break()
+        if(len(self.undo_stack)!=0):
+            self.delete_selected_polygon_points()
+            cur = self.undo_stack[-1]
+            self.undo_stack.pop()
+            if(cur[0]!="delete all"):
+                while(self.map.get(cur[1], cur[1])!=cur[1]):
+                    cur[1] = self.map.get(cur[1], cur[1])
+            if(cur[0] == "move"):
+                self.redo_stack.append(["move", cur[1], self.canvas.coords(cur[1]), cur[2]])
+                self.canvas.coords(cur[1], cur[2])
+            elif(cur[0] == "delete polygon"):
+                self.redo_stack.append(["delete polygon", cur[1], cur[2], cur[3], cur[4]])
+                self.selected_polygon = self.canvas.create_polygon(cur[2], fill = cur[3],  outline='black', width=2, stipple = 'gray50', tag = "polygon")
+                while(self.map.get(cur[4], cur[4])!=cur[4]):
+                    cur[4] = self.map.get(cur[4], cur[4])
+                self.canvas.lower(self.selected_polygon, cur[4])
+                self.create_selected_polygon_points()
+                self.map[cur[1]] = self.selected_polygon
+                self.delete_selected_polygon_points()
+            elif(cur[0] == "inc"):
+                while(self.map.get(cur[2], cur[2])!=cur[2]):
+                    cur[2] = self.map.get(cur[2], cur[2])
+                self.redo_stack.append(["inc", cur[1], cur[2], cur[3]])
+                self.canvas.lower(cur[1], cur[2])
+            elif(cur[0] == "dec"):
+                while(self.map.get(cur[2], cur[2])!=cur[2]):
+                    cur[2] = self.map.get(cur[2], cur[2])
+                self.canvas.lift(cur[1], cur[2])
+                self.redo_stack.append(["dec", cur[1], cur[2], cur[3]])
+            elif(cur[0] == "delete point"):
+                self.redo_stack.append(["delete point", cur[1], self.canvas.coords(cur[1])])
+                self.canvas.coords(cur[1], cur[2])
+            elif(cur[0] == "knife"):
+                self.redo_stack.append(["knife", cur[1], self.canvas.coords(cur[1])])
+                self.canvas.coords(cur[1], cur[2])
+            elif(cur[0] == "createnew"):
+                self.redo_stack.append(["createnew", cur[1], cur[2], cur[3]])
+                self.canvas.delete(cur[1])
+            elif(cur[0] == "createedit"):
+                self.redo_stack.append(["createedit", cur[1], self.canvas.coords(cur[1])])
+                self.canvas.coords(cur[1], cur[2])
+            elif(cur[0] == "delete all"):
+                temp = []
+                for i, coords, colour in cur[1]:
+                    self.map[i] = self.canvas.create_polygon(coords, fill = colour,  outline='black', width=2, stipple = 'gray50', tag = "polygon")
+                    temp.append([i, coords, colour])
+                self.redo_stack.append(["delete all", temp])
+
+            self.selected_polygon = cur[1]
+            self.create_selected_polygon_points()
+
+        
 
 
     def redo(self):
-        self.reset()
-        self.delete_selected_polygon_points()
-        if(self.state == 1):
-            self.edit_mode()
-        else:
-            self.create_mode()
+        self.button_break()
+        if(len(self.redo_stack)!=0):
+            self.delete_selected_polygon_points()
+            cur = self.redo_stack[-1]
+            self.redo_stack.pop()
+            if(cur[0] != "delete all"):
+                while(self.map.get(cur[1], cur[1])!=cur[1]):
+                    cur[1] = self.map.get(cur[1], cur[1])
+            if(cur[0] == "move"):
+                self.undo_stack.append(["move", cur[1], cur[3]])
+                self.canvas.coords(cur[1], cur[2])
+            elif (cur[0] == "delete point"):
+                self.undo_stack.append(["delete point", cur[1], self.canvas.coords(cur[1])])
+                self.canvas.coords(cur[1], cur[2])
+            elif (cur[0] == "inc"):
+                temp = self.canvas.find_above(self.canvas.find_above(cur[1]))
+                self.undo_stack.append(["inc", cur[1], self.canvas.find_below(cur[1]), temp])
+                self.canvas.lift(cur[1], temp)
+                self.canvas.lower(self.iid)
+            elif (cur[0] == "dec"):
+                temp = self.canvas.find_below(self.canvas.find_below(cur[1]))
+                self.undo_stack.append(["dec", cur[1], self.canvas.find_above(cur[1]), temp])
+                self.canvas.lower(cur[1], temp)
+                self.canvas.lower(self.iid)
+            elif (cur[0] == "knife"):
+                self.undo_stack.append(["knife", cur[1], self.canvas.coords(cur[1])])
+                self.canvas.coords(cur[1], cur[2])
+            elif(cur[0] == "createnew"):
+                temp = self.canvas.create_polygon(cur[2], fill = cur[3],  outline='black', width=2, stipple = 'gray50', tag = "polygon")
+                self.map[cur[1]] = temp;
+                cur[1] = temp
+                self.undo_stack.append(["createnew", cur[1], cur[2], cur[3]])
+            elif(cur[0] == "createedit"):
+                self.undo_stack.append(["createedit", cur[1], self.canvas.coords(cur[1])])
+                self.canvas.coords(cur[1], cur[2])
+            elif(cur[0] == "delete polygon"):
+                self.undo_stack.append(["delete polygon", cur[1], cur[2], cur[3], cur[4]])
+                self.canvas.delete(cur[1])
+            elif(cur[0] == "delete all"):
+                self.deleteall()
+            self.selected_polygon = cur[1]
+            self.create_selected_polygon_points()
+
     
     def deleteall(self):
         self.reset()
         self.delete_selected_polygon_points()
+        cur = []
         for i in self.canvas.find_all():
             if(i!=self.iid):
+                cur.append([i, self.canvas.coords(i), self.canvas.itemcget(i, "fill")])
                 self.canvas.delete(i)
-        self.edit_mode()
+        self.undo_stack.append(["delete all", cur])
 
 ######Button functions#############
     
@@ -204,16 +291,24 @@ class Buttons:
 
 
     def inc(self):
-        self.canvas.lift(self.selected_polygon)
+        self.redo_stack.clear()
+        temp = self.canvas.find_above(self.canvas.find_above(self.selected_polygon))
+        self.undo_stack.append(["inc", self.selected_polygon, self.canvas.find_below(self.selected_polygon), temp])
+        self.canvas.lift(self.selected_polygon, temp)
         for point in self.selected_polygon_points:
             self.canvas.lift(point)
         self.canvas.lower(self.iid)
+        
 
-    def dec(self):
-        self.canvas.lower(self.selected_polygon)
+    def dec(self):  
+        self.redo_stack.clear()
+        temp = self.canvas.find_below(self.canvas.find_below(self.selected_polygon))
+        self.undo_stack.append(["dec", self.selected_polygon, self.canvas.find_above(self.selected_polygon), temp])
+        self.canvas.lower(self.selected_polygon, temp)
         for point in self.selected_polygon_points:
             self.canvas.lift(point)
         self.canvas.lower(self.iid)
+        
 
 
 
@@ -257,18 +352,6 @@ class Buttons:
             self.coords_animate.append(y)
             self.canvas.coords(self.selected_polygon, self.coords_animate)
 
-    def animate_point_add(self, event):
-        self.coords_animate = self.coords.copy()
-        x = self.canvas.canvasx(event.x)
-        y = self.canvas.canvasy(event.y)
-        self.coords_animate.append(x)
-        self.coords_animate.append(y)
-        self.canvas.coords(self.selected_polygon, self.coords_animate)
-        if(self.selected_point == None):
-            self.selected_point = self.canvas.create_oval(x-self.point_radius, y-self.point_radius, x+self.point_radius, y+self.point_radius, fill = "white", tag = "point")
-        else:
-            self.canvas.coords(self.selected_point, x-self.point_radius, y-self.point_radius, x+self.point_radius, y+self.point_radius)
-
         
     def animate_point_move(self, event):
         x = self.canvas.canvasx(event.x)
@@ -297,16 +380,20 @@ class Buttons:
 
 
     def create_polygon(self, event):
+        self.redo_stack.clear()
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
-        self.coords.append(x)
-        self.coords.append(y)
+        self.new_coords.append(x)
+        self.new_coords.append(y)
         if(self.selected_polygon == None):
-            self.selected_polygon = self.canvas.create_polygon(self.coords, fill = self.color,  outline='black', width=2, stipple = 'gray50', tag = "polygon")
+            self.selected_polygon = self.canvas.create_polygon(self.new_coords, fill = self.color,  outline='black', width=2, stipple = 'gray50', tag = "polygon")
+            self.undo_stack.append(["createnew", self.selected_polygon, self.new_coords.copy(), self.canvas.itemcget(self.selected_polygon, "fill")])
+            
         else:
-            self.canvas.coords(self.selected_polygon, self.coords)
+            self.canvas.coords(self.selected_polygon, self.new_coords)
+            self.undo_stack.append(["createedit", self.selected_polygon, self.coords])
         self.selected_polygon_points.append(self.canvas.create_oval(x - self.point_radius, y-self.point_radius, x+self.point_radius, y+self.point_radius, fill = "white", tag = "point"))
-        
+        self.coords = self.new_coords.copy()
 
 
 
@@ -315,9 +402,11 @@ class Buttons:
 
             
     def delete_point(self):
+        self.redo_stack.clear()
         x = self.eventx
         y = self.eventy
         self.coords = self.canvas.coords(self.selected_polygon)
+        self.undo_stack.append(["delete point", self.selected_polygon, self.coords])
         self.new_coords = []
         mind = 10
         mini = -1
@@ -331,14 +420,13 @@ class Buttons:
             for i in range(mini+2, len(self.coords)):
                 self.new_coords.append(self.coords[i])
             self.delete_selected_polygon_points()
-            self.redo_stack.clear()
-            self.undo_stack.append([1, self.selected_polygon, self.coords, self.canvas.itemcget(self.selected_polygon, "fill")])
             self.canvas.coords(self.selected_polygon, self.new_coords)
             self.create_selected_polygon_points()
             self.state = 1
 
 
     def select_point(self, event):
+        self.redo_stack.clear()
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
         self.coords = self.canvas.coords(self.selected_polygon)
@@ -364,36 +452,39 @@ class Buttons:
             self.canvas.tag_unbind("polygon", "<Button-3>")
 
     def move_point(self, event):
+        self.redo_stack.clear()
         self.selected_point = None
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
         if(self.index!=None):
             self.new_coords = []
-            self.undo_stack.append([1, self.selected_polygon, self.coords, self.canvas.itemcget(self.selected_polygon, "fill")])
             for i in range(self.index):
                 self.new_coords.append(self.coords[i])
             self.new_coords.append(x)
             self.new_coords.append(y)
             for i in range(self.index+2, len(self.coords)):
                 self.new_coords.append(self.coords[i])
-            self.redo_stack.clear()
             self.canvas.coords(self.selected_polygon, self.new_coords)
+            self.undo_stack.append(["move", self.selected_polygon, self.coords])
         self.index = None
         self.canvas.unbind('<Motion>')
         self.canvas.tag_bind("point", "<Button-1>", self.select_point)
-        self.coords = self.new_coords
+        self.coords = self.new_coords.copy()
         self.edit_mode()
         self.create_selected_polygon_points()
 
     def delete_polygon(self):
+        self.redo_stack.clear()
         self.delete_selected_polygon_points()
+        self.undo_stack.append(["delete polygon", self.selected_polygon, self.canvas.coords(self.selected_polygon), self.canvas.itemcget(self.selected_polygon, "fill"), self.canvas.find_above(self.selected_polygon)])
         self.canvas.delete(self.selected_polygon)
 
     def knife(self, event):
-        print("A")
+        self.redo_stack.clear()
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
         self.coords = self.canvas.coords(self.selected_polygon)
+        self.undo_stack.append(["knife", self.selected_polygon, self.coords])
         mind = 20
         mini = -1
         mx = -1
@@ -474,8 +565,7 @@ class Buttons:
         
         self.canvas.tag_bind("polygon", "<Button-1>", self.select_polygon)  
         self.canvas.tag_bind("polygon", "<Button-3>", self.polygon_right_click) 
-        self.undo_stack.clear()
-        self.redo_stack.clear()
+
 
     def create_mode(self):
         self.state = 2
@@ -492,10 +582,7 @@ class Buttons:
         self.selected_polygon = None
         self.coords = []
         self.new_coords = []
-        self.undo_stack.clear()
-        self.redo_stack.clear()
         self.canvas.bind("<Button-1>", self.create_polygon)
-        self.canvas.bind("<Motion>", self.animate_polygon_new)
 
     def use_knife(self):
         self.canvas.tag_unbind("point", "<Button-1>")
@@ -503,6 +590,16 @@ class Buttons:
         self.canvas.tag_unbind("polygon", "<Button-1>")
         self.canvas.tag_unbind("polygon", "<Button-3>")
         self.canvas.bind("<Button-1>", self.knife)
+
+    def button_break(self):
+        if(len(self.coords)!=0):
+            self.canvas.coords(self.selected_polygon, self.coords)
+        self.delete_selected_polygon_points()
+        self.create_selected_polygon_points()
+        self.canvas.unbind("<Motion>")
+        self.canvas.unbind("<Button-1>")
+        if(self.state == 1):
+            self.canvas.tag_bind("point", "<Button-1>", self.select_point)
 
 
 
