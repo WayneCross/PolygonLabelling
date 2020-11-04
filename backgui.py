@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter.colorchooser import askcolor
-from tkinter.filedialog import asksaveasfilename
+from tkinter.filedialog import asksaveasfilename, askopenfilename
 from PIL import Image, ImageDraw, ImageTk
 import os
 from colormap import rgb2hex
@@ -9,6 +9,8 @@ from collections import deque
 import numpy as np
 import math
 import cv2 as cv2
+import json
+from datetime import datetime
 
 
 
@@ -101,7 +103,7 @@ def shortest_dist(x, y, x1, y1, x2, y2):
     return d, xa, ya
 
 class Buttons:
-    def __init__(self, canvas, iid, img_height, img_width, window, lb):
+    def __init__(self, canvas, iid, img_height, img_width, window, labels):
         self.state = 1
         self.canvas = canvas
         self.window = window
@@ -109,7 +111,7 @@ class Buttons:
         self.img_width = img_width
         self.img_height = img_height
         self.point_radius = 4
-        self.lb = lb
+        self.labels = labels
         self.eventx = 0
         self.eventy = 0
 
@@ -139,8 +141,8 @@ class Buttons:
 
 
         self.index = None ### used in move_point function
-        self.color = "white"
-
+        self.color = rgb2hex(self.labels[0][0], self.labels[0][1], self.labels[0][2])
+        self.tcolor = self.color
         self.edit_mode()
 
        
@@ -312,7 +314,7 @@ class Buttons:
 
 
 
-    def save(self):
+    def export(self):
         list = self.canvas.find_all()
         self.reset()
         img = Image.new('RGB', (self.img_width, self.img_height), color = 'black')
@@ -325,8 +327,30 @@ class Buttons:
         file_path = asksaveasfilename(parent=self.window, initialdir=os.getcwd(), title="Please select a file name for saving:")
         img.save(file_path)
 
+    def save(self):
+        data = dict([])
+        for id in self.canvas.find_all():
+            if(id!=self.iid):
+                data[id] = [self.canvas.itemcget(id, "fill"), self.canvas.coords(id)]
+        files = [('JSON File', '*.json')]
+        file_path = asksaveasfilename(parent=self.window, initialdir=os.getcwd(), title="Please select a file name for saving:", defaultextension = json, filetypes = files)
+        if(file_path is None or file_path == ""):
+            return
+        with open(file_path, 'w') as outfile:
+            json.dump(data, outfile)
 
-
+    def load(self):
+        files = [('JSON File', '*.json')]
+        filename = askopenfilename(parent=self.window, initialdir = os.getcwd(),title = "Select file",defaultextension = json, filetypes = files)
+        if(filename is None or filename == ""):
+            return
+        for id in self.canvas.find_all():
+            if(id!=self.iid):
+                self.canvas.delete(id)
+        with open(filename, 'r') as fp:
+            data = json.load(fp)
+        for color, coords in data.values():
+            self.canvas.create_polygon(coords, fill = color,  outline='black', width=2, stipple = 'gray50', tag = "polygon")
     
 ###### points selected polygon functions#########
     
@@ -547,9 +571,6 @@ class Buttons:
             self.canvas.delete(self.selected_point)
             self.selected_point = None
 
-    def get_color(self, event):
-        self.color = self.lb.get(self.lb.curselection())
-
     def edit_mode(self):
         self.state = 1
         if(self.selected_polygon is not None and len(self.coords)!=0):
@@ -601,6 +622,70 @@ class Buttons:
         if(self.state == 1):
             self.canvas.tag_bind("point", "<Button-1>", self.select_point)
 
+    def select_color_window(self):
+        self.cwindow = Toplevel(self.window)
+        self.cwindow.grab_set()
+        self.cwindow.resizable(False, False)
+        self.cwindow.geometry('300x200')
+        
+        #self.cwindow.attributes('-topmost', 'true')
+        select_custom_color_bn = Button(self.cwindow, text = "Select Custom color", command = self.choose_custom_color) 
+        select_custom_color_bn.place(x = 155, y = 160)
+        ok_color_bn = Button(self.cwindow, text = "Apply", command = self.color_apply) 
+        ok_color_bn.place(x = 20, y = 160)
+        close_bn = Button(self.cwindow, text = "Close", command = self.on_closing) 
+        close_bn.place(x = 70, y = 160)
+        self.lb = Listbox(self.cwindow, highlightcolor = None)
+        self.lb.place(x = 20, y = 15, height = 120)
+        lpsb = Scrollbar(self.cwindow, command = self.lb.yview)
+        lpsb.place(x = 140, y = 15, height = 120)
+        self.lb.config(yscrollcommand = lpsb.set) 
+        self.lp = np.array(self.labels)
+        for i in range(self.lp.shape[0]):
+            self.lb.insert("end", " ")
+            self.lb.itemconfig(i, {'bg':rgb2hex(self.lp[i][0], self.lp[i][1], self.lp[i][2])})
+        self.lb.select_set(0)
+        self.ccanvas = Canvas(self.cwindow, height = 120, width = 100, bg = self.color)
+        self.ccanvas.place(x = 170, y = 15)
+        self.lb.bind("<Button-1>", self.lbcolor_apply)
+        self.cwindow.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def color_apply(self):
+        self.color = self.tcolor
+        print(self.color)
+        self.on_closing()
+
+    def on_closing(self, event = None):
+        self.lb.unbind("<Button-1>")
+        self.cwindow.grab_release()
+        self.cwindow.destroy()
+
+    def lbcolor_apply(self, event):
+        self.tcolor = self.lb.itemcget(self.lb.curselection(), 'bg')
+        self.ccanvas.configure(bg = self.tcolor )
+
+    def choose_custom_color(self): 
+        self.cwindow.attributes('-topmost', 'false')
+        self.tcolor = colorchooser.askcolor(title ="Choose color")[1]
+        self.ccanvas.configure(bg = self.tcolor )
+        self.cwindow.attributes('-topmost', 'true')
 
 
+class IORedirector(object):
+    '''A general class for redirecting I/O to this Text widget.'''
+    def __init__(self,file = "log.txt"):
+        self.file = file
+        #self.terminal = sys.stdout
 
+class StdoutRedirector(IORedirector):
+    '''A class for redirecting stdout to this Text widget.'''
+    def write(self,str):
+        with open(self.file, "a+") as fp:
+            now = datetime.now()
+            dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+            temp = dt_string+" : "+str
+            fp.write(temp)
+            sys.stdout.write(temp)
+
+    def flush(self):
+        pass
