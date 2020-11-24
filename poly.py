@@ -22,9 +22,8 @@ sys.stderr = StdoutRedirector()
     
 
 window = Tk()
-window.geometry('1500x800')
+window.geometry('1500x760')
 window.resizable(False, False)
-
 ##files = [('JPG File', '*.jpeg')]
 ##filename = askopenfilename(parent=self.window, initialdir = os.getcwd(),title = "Select file",defaultextension = json, filetypes = files)
 img_path = "C:\Study\Internship\App\dataset\ADE20K_2016_07_26\Images\img\ADE_train_00000001.jpg"
@@ -134,7 +133,7 @@ def open_img():
     img = Image.open(img_path) 
     img_height = img.size[1]
     img_width = img.size[0] 
-    imgtk = ImageTk.PhotoImage(img)
+    bn.imgtk = ImageTk.PhotoImage(img)
     height = min(700, img_height)
     width = min(1250, img_width)
     canvas_y_sb.place(x = width + 220, y = 0, height = height)

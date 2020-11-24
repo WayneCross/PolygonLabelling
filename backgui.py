@@ -14,6 +14,7 @@ from datetime import datetime
 import tkinter as tk
 import base64
 import pickle
+from io import BytesIO
 
 def slope(a, b):
     return math.degrees(math.atan2((a[1]-b[1]),(a[0]-b[0])))
@@ -352,14 +353,12 @@ class Buttons:
         for id in self.canvas.find_all():
             if(id!=self.iid and self.canvas.itemcget(id, "tag") == "polygon"):
                 data[id] = [self.canvas.itemcget(id, "fill"), self.canvas.coords(id)]
-        print(type(self.img))
-        if(self.img is not None):
-            data["img"] = np.array(self.img).tolist()
         files = [('JSON File', '*.json')]
         file_path = asksaveasfilename(parent=self.window, initialdir=os.getcwd(), title="Please select a file name for saving:", defaultextension = json, filetypes = files)
         if(file_path is None or file_path == ""):
             return
         with open(file_path, 'w') as outfile:
+            self.img.save(file_path[:-4]+'jpg')
             json.dump(data, outfile)
 
     def load(self):
@@ -372,7 +371,17 @@ class Buttons:
                 self.canvas.delete(id)
         with open(filename, 'r') as fp:
             data = json.load(fp)
-        data.pop('img', None)
+        
+        self.img = Image.open(filename[:-4]+'jpg') 
+        img_height = self.img.size[1]
+        img_width = self.img.size[0] 
+        self.imgtk = ImageTk.PhotoImage(self.img)
+        height = min(700, img_height)
+        width = min(1250, img_width)
+        self.canvas.configure(scrollregion=(0, 0, img_width, img_height ))
+        self.canvas.configure(height = height, width = width)
+        self.iid = self.canvas.create_image( img_width/2, img_height/2, image = self.imgtk )
+        print(self.iid)
         for color, coords in data.values():
             self.canvas.create_polygon(coords, fill = color,  outline='black', width=2, stipple = 'gray50', tag = "polygon")
     
@@ -873,3 +882,8 @@ class XCanvas(tk.Canvas):
         nregion = tuple(x*r for x in self.region)
         self.config(scrollregion=nregion)
     
+def im_2_b64(image):
+    buff = BytesIO()
+    image.save(buff, format="JPEG")
+    img_str = base64.b64encode(buff.getvalue())
+    return img_str
