@@ -12,6 +12,7 @@ import cv2 as cv2
 import json
 from datetime import datetime
 import tkinter as tk
+import base64
 import pickle
 
 def slope(a, b):
@@ -120,7 +121,7 @@ class Buttons:
         self.labels = labels
         self.eventx = 0
         self.eventy = 0
-
+        self.img = None
 
         self.window.bind('<Control-z>', self.undo_shortcut)
         self.window.bind('<Control-y>', self.redo_shortcut)
@@ -351,6 +352,9 @@ class Buttons:
         for id in self.canvas.find_all():
             if(id!=self.iid and self.canvas.itemcget(id, "tag") == "polygon"):
                 data[id] = [self.canvas.itemcget(id, "fill"), self.canvas.coords(id)]
+        print(type(self.img))
+        if(self.img is not None):
+            data["img"] = np.array(self.img).tolist()
         files = [('JSON File', '*.json')]
         file_path = asksaveasfilename(parent=self.window, initialdir=os.getcwd(), title="Please select a file name for saving:", defaultextension = json, filetypes = files)
         if(file_path is None or file_path == ""):
@@ -368,6 +372,7 @@ class Buttons:
                 self.canvas.delete(id)
         with open(filename, 'r') as fp:
             data = json.load(fp)
+        data.pop('img', None)
         for color, coords in data.values():
             self.canvas.create_polygon(coords, fill = color,  outline='black', width=2, stipple = 'gray50', tag = "polygon")
     
@@ -579,7 +584,7 @@ class Buttons:
             self.point_popup.grab_release() 
 
     def polygon_right_click(self, event): 
-        self.eventx = self.canvas.canvasx(event.x)
+        self.eventx = self.canvas.canvasx(event.x) 
         self.eventy = self.canvas.canvasy(event.y)
         self.selected_polygon = self.canvas.find_closest(self.eventx, self.eventy)[0]
         self.delete_selected_polygon_points()
@@ -618,7 +623,6 @@ class Buttons:
         self.cwindow.grab_set()
         self.cwindow.resizable(False, False)
         self.cwindow.geometry('300x200')
-        
         self.color = self.canvas.itemcget(self.selected_polygon, "fill")
         #self.cwindow.attributes('-topmost', 'true')
         ok_color_bn = Button(self.cwindow, text = "Apply", command = self.color_apply_edit) 
@@ -708,27 +712,43 @@ class Buttons:
         self.cwindow = Toplevel(self.window)
         self.cwindow.resizable(False, False)
         self.cwindow.grab_set()
-        self.cwindow.geometry('350x350')
+        self.cwindow.geometry('270x500')
         self.cwindow.attributes('-topmost', 'true')
+        self.pcanvas = Canvas(self.cwindow, bg = "white", height = 240, width = 240)
+        self.pcanvas.place(x = 10, y = 10)
+        self.colorimg =  PhotoImage(file = "color_chooser.png")
+        self.pcanvas.create_image(120, 120, image=self.colorimg)
         self.rscale = Scale(self.cwindow, from_=0, to=255, orient=HORIZONTAL, command = self.set_color)
-        self.rscale.place(x = 10, y = 120)
+        self.rscale.place(x = 10, y = 270)
         self.gscale = Scale(self.cwindow, from_=0, to=255, orient=HORIZONTAL, command = self.set_color)
-        self.gscale.place(x = 10, y = 160)
+        self.gscale.place(x = 10, y = 310)
         self.bscale = Scale(self.cwindow, from_=0, to=255, orient=HORIZONTAL, command = self.set_color)
-        self.bscale.place(x = 10, y = 200)
+        self.bscale.place(x = 10, y = 350)
         self.rscale.set(np.random.randint(0,256))
         self.gscale.set(np.random.randint(0,256))
         self.bscale.set(np.random.randint(0,256))
         self.ccanvas = Canvas(self.cwindow, height = 100, width = 100, bg = rgb2hex(self.rscale.get(), self.gscale.get(), self.bscale.get()))
-        self.ccanvas.place(x = 10, y = 10)
+        self.ccanvas.place(x = 150, y = 290)
         self.name = Entry(self.cwindow)
-        self.name.place(x = 10, y = 260)
+        self.name.place(x = 10, y = 400)
         apply_bn = Button(self.cwindow, text = "Create", command = self.apply_color)
-        apply_bn.place(x = 10, y = 300)
+        apply_bn.place(x = 10, y = 440)
         cancel_bn = Button(self.cwindow, text = "Cancel", command = self.lb_cancel)
-        cancel_bn.place(x = 70, y = 300)
+        cancel_bn.place(x = 70, y = 440)
         self.lb.bind("<<ListboxSelect>>", self.lb_select)
+        self.pcanvas.bind("<B1-Motion>", self.select_color)
         self.cwindow.protocol("WM_DELETE_WINDOW", self.lb_close)
+        
+
+    def select_color(self, event):
+        x = event.x
+        y = event.y
+        if(x < 0 or y < 0 or y >= self.colorimg.height() or x >= self.colorimg.width()):
+            return
+        r,g,b = self.colorimg.get(x, y)
+        self.rscale.set(r)
+        self.gscale.set(g)
+        self.bscale.set(b)
 
     def lb_select(self, event):
         self.color = self.lb.itemcget(ANCHOR, 'bg')

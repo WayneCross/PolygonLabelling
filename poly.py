@@ -1,6 +1,7 @@
 from tkinter import *
 import tkinter as tk
 from tkinter.colorchooser import askcolor
+from tkinter import colorchooser
 from tkinter.filedialog import asksaveasfilename
 from PIL import Image, ImageDraw, ImageTk
 import os
@@ -142,6 +143,7 @@ def open_img():
     canvas.configure(height = height, width = width)
     iid = canvas.create_image( img_width/2, img_height/2, image = imgtk )
     bn.iid = iid
+    bn.img = img
 
 def exit():
     sys.exit()
