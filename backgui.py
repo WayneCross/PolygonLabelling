@@ -150,7 +150,7 @@ class Buttons:
 
 
         self.index = None ### used in move_point function
-        self.color = rgb2hex(self.labels[0][0], self.labels[0][1], self.labels[0][2])
+        self.color = "black"
         self.tcolor = self.color
         self.edit_mode()
 
@@ -335,7 +335,7 @@ class Buttons:
     def export(self):
         list = self.canvas.find_all()
         self.reset()
-        img = Image.new('RGB', (self.img_width, self.img_height), color = 'black')
+        img = Image.new('RGB', (self.img.size[0], self.img.size[1]), color = 'black')
         img1 = ImageDraw.Draw(img)
         for i in list:
             if(self.canvas.itemcget(i, "tag") == "polygon"):

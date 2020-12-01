@@ -26,15 +26,15 @@ window.geometry('1500x760')
 window.resizable(False, False)
 ##files = [('JPG File', '*.jpeg')]
 ##filename = askopenfilename(parent=self.window, initialdir = os.getcwd(),title = "Select file",defaultextension = json, filetypes = files)
-img_path = "C:\Study\Internship\App\dataset\ADE20K_2016_07_26\Images\img\ADE_train_00000001.jpg"
-olabels = np.load("dataset\ADE20K_2016_07_26\label.npy")
 
-img = Image.open(img_path) 
-img_height = img.size[1]
-img_width = img.size[0] 
+olabels = None
 
-height = min(700, img_height)
-width = min(1250, img_width)
+img = None 
+img_height = 700
+img_width = 1250 
+
+height = img_height#min(700, img_height)
+width = img_width#min(1250, img_width)
 
 canvas = Canvas(window, height = height, width = width, bg = 'white')
 #canvas = XCanvas(window, height = height, width = width, bg = 'white', img_height = img_height, img_width = img_width, img = img)
@@ -133,7 +133,7 @@ def open_img():
     img = Image.open(img_path) 
     img_height = img.size[1]
     img_width = img.size[0] 
-    bn.imgtk = ImageTk.PhotoImage(img)
+    imgtk = ImageTk.PhotoImage(img)
     height = min(700, img_height)
     width = min(1250, img_width)
     canvas_y_sb.place(x = width + 220, y = 0, height = height)
