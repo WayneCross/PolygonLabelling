@@ -128,8 +128,8 @@ def open_img():
     img_path = askopenfilename(parent=window, initialdir = os.getcwd(),title = "Select file", defaultextension="*.jpg", filetypes=[("JPEG file", "*.jpg")])
     if(img_path is None or img_path == ""):
         return
-    if(iid!=-1):
-        canvas.delete(iid)
+    if(bn.iid!=-1):
+        canvas.delete(bn.iid)
     img = Image.open(img_path) 
     img_height = img.size[1]
     img_width = img.size[0] 
@@ -140,8 +140,9 @@ def open_img():
     canvas_x_sb.place(x = 210, y = height + 7, width = width)
     canvas.configure(scrollregion=(0, 0, img_width, img_height ))
     canvas.configure(height = height, width = width)
-    iid = canvas.create_image( img_width/2, img_height/2, image = imgtk )
-    bn.iid = iid
+
+    bn.iid = canvas.create_image( img_width/2, img_height/2, image = imgtk )
+    iid = bn.iid
     bn.img = img
 
 def exit():

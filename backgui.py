@@ -381,7 +381,6 @@ class Buttons:
         self.canvas.configure(scrollregion=(0, 0, img_width, img_height ))
         self.canvas.configure(height = height, width = width)
         self.iid = self.canvas.create_image( img_width/2, img_height/2, image = self.imgtk )
-        print(self.iid)
         for color, coords in data.values():
             self.canvas.create_polygon(coords, fill = color,  outline='black', width=2, stipple = 'gray50', tag = "polygon")
     
