@@ -15,6 +15,7 @@ import tkinter as tk
 import base64
 import pickle
 from io import BytesIO
+from tkinter import messagebox
 
 def slope(a, b):
     return math.degrees(math.atan2((a[1]-b[1]),(a[0]-b[0])))
@@ -152,7 +153,7 @@ class Buttons:
         self.index = None ### used in move_point function
         self.color = "black"
         self.tcolor = self.color
-        self.edit_mode()
+        self.create_mode()
 
 
         self.list = dict([])
@@ -181,7 +182,45 @@ class Buttons:
             self.create_selected_polygon_points()
         else:
             self.create_mode()
-            
+
+
+    def auto_create(self, seg = None):
+        if(seg is None):
+            if(self.iid == -1):
+                messagebox.showerror("Error", "Please select image first")
+                return
+            img_path = askopenfilename(parent=self.window, initialdir = os.getcwd(),title = "Select file", defaultextension="*.png", filetypes=[("PNG file", "*.png")])
+            if(img_path is None or img_path == ""):
+                return
+            self.deleteall()
+            self.undo_stack.clear()
+            seg = cv2.imread(img_path)
+            seg = cv2.cvtColor(seg, cv2.COLOR_BGR2RGB)
+        labels = get_labels(np.asarray(seg))
+        draw(self.canvas, labels, seg)
+
+    def open_img(self, img_to_open = None):
+        if(img_to_open is  None):
+            img_to_open = askopenfilename(parent=self.window, initialdir = os.getcwd(),title = "Select file", defaultextension="*.jpg", filetypes=[("JPEG file", "*.jpg")])
+        if(img_to_open is None or img_to_open == ""):
+            return
+        if(self.iid!=-1):
+            self.canvas.delete(self.iid)
+        self.deleteall()
+        self.undo_stack.clear()
+        img = Image.open(img_to_open) 
+        self.img_height = img.size[1]
+        self.img_width = img.size[0] 
+        self.imgtk = ImageTk.PhotoImage(img, master = self.window)
+        height = min(700, self.img_height)
+        width = min(1250, self.img_width)
+        self.canvas_y_sb.place(x = width + 220, y = 0, height = height)
+        self.canvas_x_sb.place(x = 210, y = height + 7, width = width)
+        self.canvas.configure(scrollregion=(0, 0, self.img_width, self.img_height ))
+        self.canvas.configure(height = height, width = width)
+
+        self.iid = self.canvas.create_image( self.img_width/2, self.img_height/2, image = self.imgtk )
+        self.img = img
 
 
 
@@ -234,7 +273,10 @@ class Buttons:
             elif(cur[0] == "delete all"):
                 temp = []
                 for i, coords, colour in cur[1]:
-                    self.map[i] = self.canvas.create_polygon(coords, fill = colour,  outline='black', width=2, stipple = 'gray50', tag = "polygon")
+                    if(len(coords) == 0):
+                        self.map[i] = self.canvas.create_polygon([10000,10000,10000,10000], fill = colour,  outline='black', width=2, stipple = 'gray50', tag = "polygon")
+                    else:
+                        self.map[i] = self.canvas.create_polygon(coords, fill = colour,  outline='black', width=2, stipple = 'gray50', tag = "polygon")
                     temp.append([i, coords, colour])
                 self.redo_stack.append(["delete all", temp])
             elif(cur[0] == "color edit"):
@@ -242,6 +284,10 @@ class Buttons:
                 self.canvas.itemconfig(cur[1], fill = cur[2])
             self.selected_polygon = cur[1]
             self.create_selected_polygon_points()
+        if(self.state == 1):
+            self.edit_mode()
+        else:
+            self.create_mode()
 
         
 
@@ -292,6 +338,10 @@ class Buttons:
                 self.canvas.itemconfig(cur[1], fill = cur[3])
             self.selected_polygon = cur[1]
             self.create_selected_polygon_points()
+        if(self.state == 1):
+            self.edit_mode()
+        else:
+            self.create_mode()
 
     
     def deleteall(self):
@@ -303,6 +353,8 @@ class Buttons:
                 cur.append([i, self.canvas.coords(i), self.canvas.itemcget(i, "fill")])
                 self.canvas.delete(i)
         self.undo_stack.append(["delete all", cur])
+        self.edit_mode()
+        self.create_mode()
 
 ######Button functions#############
     
@@ -335,7 +387,7 @@ class Buttons:
     def export(self):
         list = self.canvas.find_all()
         self.reset()
-        img = Image.new('RGB', (self.img.size[0], self.img.size[1]), color = 'black')
+        img = Image.new('RGB', (self.img_width, self.img_height), color = 'black')
         img1 = ImageDraw.Draw(img)
         for i in list:
             if(self.canvas.itemcget(i, "tag") == "polygon"):
@@ -367,20 +419,19 @@ class Buttons:
         if(filename is None or filename == ""):
             return
         for id in self.canvas.find_all():
-            if(id!=self.iid):
-                self.canvas.delete(id)
+            self.canvas.delete(id)
         with open(filename, 'r') as fp:
             data = json.load(fp)
         
         self.img = Image.open(filename[:-4]+'jpg') 
-        img_height = self.img.size[1]
-        img_width = self.img.size[0] 
+        self.img_height = self.img.size[1]
+        self.img_width = self.img.size[0] 
         self.imgtk = ImageTk.PhotoImage(self.img)
-        height = min(700, img_height)
-        width = min(1250, img_width)
-        self.canvas.configure(scrollregion=(0, 0, img_width, img_height ))
+        height = min(700, self.img_height)
+        width = min(1250, self.img_width)
+        self.canvas.configure(scrollregion=(0, 0, self.img_width, self.img_height ))
         self.canvas.configure(height = height, width = width)
-        self.iid = self.canvas.create_image( img_width/2, img_height/2, image = self.imgtk )
+        self.iid = self.canvas.create_image( self.img_width/2, self.img_height/2, image = self.imgtk )
         for color, coords in data.values():
             self.canvas.create_polygon(coords, fill = color,  outline='black', width=2, stipple = 'gray50', tag = "polygon")
     
@@ -631,6 +682,7 @@ class Buttons:
         self.cwindow.grab_set()
         self.cwindow.resizable(False, False)
         self.cwindow.geometry('300x200')
+        self.cwindow.title('Select class')
         self.color = self.canvas.itemcget(self.selected_polygon, "fill")
         #self.cwindow.attributes('-topmost', 'true')
         ok_color_bn = Button(self.cwindow, text = "Apply", command = self.color_apply_edit) 
@@ -638,17 +690,23 @@ class Buttons:
         close_bn = Button(self.cwindow, text = "Close", command = self.on_closing) 
         close_bn.place(x = 70, y = 160)
         self.lbe = Listbox(self.cwindow, highlightcolor = None)
-        self.lbe.place(x = 20, y = 15, height = 120)
+        self.lbe.place(x = 20, y = 30, height = 120)
         lpsb = Scrollbar(self.cwindow, command = self.lbe.yview)
-        lpsb.place(x = 140, y = 15, height = 120)
+        lpsb.place(x = 145, y = 30, height = 120)
         self.lbe.config(yscrollcommand = lpsb.set) 
         for key in self.list.keys():
             self.lbe.insert("end", key)
             self.lbe.itemconfig(self.lbe.size()-1, bg = rgb2hex(self.list[key][0][0], self.list[key][0][1], self.list[key][0][2]))
-            self.lbe.itemconfig(self.lbe.size()-1, foreground = rgb2hex(255 - self.list[key][0][0], 255 - self.list[key][0][1], 255 - self.list[key][0][2]))
+            temp = "#000000" if (self.list[key][0][0]*0.4 + self.list[key][0][1]*0.7 + self.list[key][0][2]*0.114) > 186 else  "#ffffff"
+            #self.lbe.itemconfig(self.lbe.size()-1, foreground = rgb2hex(255 - self.list[key][0][0], 255 - self.list[key][0][1], 255 - self.list[key][0][2]))
+            self.lbe.itemconfig(self.lbe.size()-1, foreground = temp)
         self.lbe.select_set(0)
         self.ccanvas = Canvas(self.cwindow, height = 120, width = 100, bg = self.color)
-        self.ccanvas.place(x = 170, y = 15)
+        self.ccanvas.place(x = 170, y = 30)
+        colorl = Label(self.cwindow, text = 'Current Colour')
+        colorl.place(x = 180,  y = 8)
+        dsl = Label(self.cwindow, text = 'Dataset')
+        dsl.place(x = 20,  y = 8)
         self.lbe.bind("<<ListboxSelect>>", self.lbcolor_apply)
         self.cwindow.protocol("WM_DELETE_WINDOW", self.on_closing)
 
@@ -671,8 +729,9 @@ class Buttons:
 
 
     def lbcolor_apply(self, event):
-        self.tcolor = self.lbe.itemcget(self.lbe.curselection(), 'bg')
-        self.ccanvas.configure(bg = self.tcolor )
+        if(self.lbe.size() != 0):
+            self.tcolor = self.lbe.itemcget(self.lbe.curselection(), 'bg')
+            self.ccanvas.configure(bg = self.tcolor )
 
     def choose_custom_color(self): 
         self.cwindow.attributes('-topmost', 'false')
@@ -721,28 +780,40 @@ class Buttons:
         self.cwindow.resizable(False, False)
         self.cwindow.grab_set()
         self.cwindow.geometry('270x500')
+        self.cwindow.title('Create new class')
         self.cwindow.attributes('-topmost', 'true')
         self.pcanvas = Canvas(self.cwindow, bg = "white", height = 240, width = 240)
         self.pcanvas.place(x = 10, y = 10)
         self.colorimg =  PhotoImage(file = "color_chooser.png")
         self.pcanvas.create_image(120, 120, image=self.colorimg)
         self.rscale = Scale(self.cwindow, from_=0, to=255, orient=HORIZONTAL, command = self.set_color)
-        self.rscale.place(x = 10, y = 270)
+        self.rscale.place(x = 20, y = 270)
+        rl = Label(self.cwindow, text = 'R:')
+        rl.place(x = 7, y = 289)
         self.gscale = Scale(self.cwindow, from_=0, to=255, orient=HORIZONTAL, command = self.set_color)
-        self.gscale.place(x = 10, y = 310)
+        self.gscale.place(x = 20, y = 310)
+        gl = Label(self.cwindow, text = 'G:')
+        gl.place(x = 7, y = 329)
         self.bscale = Scale(self.cwindow, from_=0, to=255, orient=HORIZONTAL, command = self.set_color)
-        self.bscale.place(x = 10, y = 350)
+        self.bscale.place(x = 20, y = 350)
+        bl = Label(self.cwindow, text = 'B:')
+        bl.place(x = 7, y = 369)
         self.rscale.set(np.random.randint(0,256))
         self.gscale.set(np.random.randint(0,256))
         self.bscale.set(np.random.randint(0,256))
         self.ccanvas = Canvas(self.cwindow, height = 100, width = 100, bg = rgb2hex(self.rscale.get(), self.gscale.get(), self.bscale.get()))
         self.ccanvas.place(x = 150, y = 290)
+        curl = Label(self.cwindow, text = 'Current Colour')
+        curl.place(x = 159, y = 267)
         self.name = Entry(self.cwindow)
-        self.name.place(x = 10, y = 400)
+        self.name.place(x = 20, y = 421)
+        namel = Label(self.cwindow, text = 'Class name:')
+        namel.place(x = 20, y = 400)
+        
         apply_bn = Button(self.cwindow, text = "Create", command = self.apply_color)
-        apply_bn.place(x = 10, y = 440)
+        apply_bn.place(x = 20, y = 450)
         cancel_bn = Button(self.cwindow, text = "Cancel", command = self.lb_cancel)
-        cancel_bn.place(x = 70, y = 440)
+        cancel_bn.place(x = 80, y = 450)
         self.lb.bind("<<ListboxSelect>>", self.lb_select)
         self.pcanvas.bind("<B1-Motion>", self.select_color)
         self.cwindow.protocol("WM_DELETE_WINDOW", self.lb_close)
@@ -773,13 +844,19 @@ class Buttons:
                 self.list[self.name.get()] = [[self.rscale.get(), self.gscale.get(), self.bscale.get()], len(self.list)]
                 self.lb.insert("end", self.name.get())
                 self.lb.itemconfig(self.lb.size()-1, bg = rgb2hex(self.rscale.get(), self.gscale.get(), self.bscale.get()))
-                self.lb.itemconfig(self.lb.size()-1, foreground = rgb2hex(255 - self.rscale.get(), 255 - self.gscale.get(), 255 - self.bscale.get()))
+                temp = "#000000" if (self.rscale.get()*0.299 + self.gscale.get()*0.7 + self.bscale.get()*0.114) > 186 else  "#ffffff"
+                #self.lb.itemconfig(self.lb.size()-1, foreground = rgb2hex(255 - self.rscale.get(), 255 - self.gscale.get(), 255 - self.bscale.get()))
+                self.lb.itemconfig(self.lb.size()-1, foreground = temp)
             else:
                 index = self.list[self.name.get()][1]
                 self.lb.itemconfig(index, bg = rgb2hex(self.rscale.get(), self.gscale.get(), self.bscale.get()))
-                self.lb.itemconfig(index, foreground = rgb2hex(255 - self.rscale.get(), 255 - self.gscale.get(), 255 -self.gscale.get())) 
+                temp = "#000000" if (self.rscale.get()*0.4 + self.gscale.get()*0.7 + self.bscale.get()*0.114) > 186 else  "#ffffff"
+                #self.lb.itemconfig(self.lb.size()-1, foreground = rgb2hex(255 - self.rscale.get(), 255 - self.gscale.get(), 255 - self.bscale.get()))
+                self.lb.itemconfig(self.lb.size()-1, foreground = temp)
                 self.list[self.name.get()] = [[self.rscale.get(), self.gscale.get(), self.bscale.get()], index]
             self.lb_close()
+        else:
+            messagebox.showerror("Error", "Class Name field cannot be empty")
 
     def lb_close(self):
         self.cwindow.grab_release()
