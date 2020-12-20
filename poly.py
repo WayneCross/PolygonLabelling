@@ -79,7 +79,7 @@ def run(linked = True, img_to_open = None, seg = None):
     bn.lb = Listbox(window, highlightcolor = None)
     bn.lb.place(x = 30, y = 90, height = 180, width = 150)
     lbl =  Label(window, text = 'Choose Class')
-    lbl.place(x = 28, y = 70)
+    lbl.place(x = 28, y = 65)
     lpsb = Scrollbar(window, command = bn.lb.yview)
     lpsb.place(x = 180, y = 90, height = 180)
     bn.lb.config(yscrollcommand = lpsb.set) 
