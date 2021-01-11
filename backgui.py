@@ -214,8 +214,8 @@ class Buttons:
         self.imgtk = ImageTk.PhotoImage(img, master = self.window)
         height = min(700, self.img_height)
         width = min(1250, self.img_width)
-        self.canvas_y_sb.place(x = width + 220, y = 0, height = height)
-        self.canvas_x_sb.place(x = 210, y = height + 7, width = width)
+        #self.canvas_y_sb.place(x = width + 220, y = 0, height = height)
+        #self.canvas_x_sb.place(x = 210, y = height + 7, width = width)
         self.canvas.configure(scrollregion=(0, 0, self.img_width, self.img_height ))
         self.canvas.configure(height = height, width = width)
 
@@ -690,7 +690,7 @@ class Buttons:
         close_bn = Button(self.cwindow, text = "Close", command = self.on_closing) 
         close_bn.place(x = 70, y = 160)
         self.lbe = Listbox(self.cwindow, highlightcolor = None)
-        self.lbe.place(x = 20, y = 30, height = 120)
+        self.lbe.place(x = 17, y = 30, height = 120)
         lpsb = Scrollbar(self.cwindow, command = self.lbe.yview)
         lpsb.place(x = 145, y = 30, height = 120)
         self.lbe.config(yscrollcommand = lpsb.set) 
@@ -816,6 +816,7 @@ class Buttons:
         cancel_bn.place(x = 80, y = 450)
         self.lb.bind("<<ListboxSelect>>", self.lb_select)
         self.pcanvas.bind("<B1-Motion>", self.select_color)
+        self.pcanvas.bind("<Button-1>", self.select_color)
         self.cwindow.protocol("WM_DELETE_WINDOW", self.lb_close)
         
 
@@ -830,7 +831,8 @@ class Buttons:
         self.bscale.set(b)
 
     def lb_select(self, event):
-        self.color = self.lb.itemcget(ANCHOR, 'bg')
+        if(self.lb.size()!=0):
+            self.color = self.lb.itemcget(ANCHOR, 'bg')
         
     def lb_cancel(self):
         self.lb_close()

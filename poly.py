@@ -15,17 +15,19 @@ from backgui import *
 from colormap import rgb2hex
 from tkinter import messagebox
 import tkinter as tk
+import tkinter.font as tkfont
 
 
-
-
-def run(linked = True, img_to_open = None, seg = None):
+def run(linked = False, img_to_open = None, seg = None, root = None):
     if not linked:
         sys.stderr = StdoutRedirector()
 
-        
-
-    window = Tk()
+    
+    if(root == None):
+        window = Tk()
+    else:
+        window = Toplevel(root)
+    window.option_add('*Font', 'TkDefaultFont 9')
     window.geometry('1500x760')
     window.resizable(False, False)
     window.title('Polygonal Annotation tool')
@@ -85,13 +87,13 @@ def run(linked = True, img_to_open = None, seg = None):
     bn.lb.config(yscrollcommand = lpsb.set) 
 
     lb_create_bn = Button(window, text = 'Create/Edit',command =  bn.create_new_color)
-    lb_create_bn.place(x = 15, y = 275)
+    lb_create_bn.place(x = 12, y = 275)
 
     lb_save_bn = Button(window, text = 'Save',command =  bn.save_new_list)
-    lb_save_bn.place(x = 123, y = 275)
+    lb_save_bn.place(x = 125, y = 275)
 
     lb_load_bn = Button(window, text = 'Load',command =  bn.load_new_list)
-    lb_load_bn.place(x = 159, y = 275)
+    lb_load_bn.place(x = 163, y = 275)
 
     lb_clear_bn = Button(window, text = "Clear", command = bn.clear_list)
     lb_clear_bn.place(x = 85, y = 275)
